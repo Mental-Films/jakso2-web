@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="fi">
+<head>
+<meta charset="utf-8">
+<title>Jakso 2 — Treeni</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#000000">
+<style>
+  :root {
+    --korostus: #FF3329;        /* edistymispalkki, TILAA-nappi */
+    --liike-aksentti: #1AEB99;  /* liikelaatikon tehosteväri */
+  }
+  * { box-sizing: border-box; margin: 0; -webkit-tap-highlight-color: transparent; }
+  html, body { height: 100%; overflow: hidden; }
+  body {
+    background: #000; color: #fff;
+    font-family: -apple-system, "Helvetica Neue", Arial, sans-serif;
+    position: fixed; inset: 0;
+  }
+  .num { font-variant-numeric: tabular-nums; }
+
+  video {
+    position: absolute; inset: 0; width: 100%; height: 100%;
+    object-fit: contain; background: #000; display: none;
+  }
+  video.nakyy { display: block; }
+  body.tayta video { object-fit: cover; }
+
+  .piilossa { opacity: 0 !important; pointer-events: none !important; }
+  .siirtyma { transition: opacity .25s; }
+
+  /* Yläoverlay: otsikko (referenssi: YouTube) */
+  #yla {
+    position: absolute; top: 0; left: 0; right: 0;
+    padding: calc(env(safe-area-inset-top, 0px) + 14px) 16px 44px;
+    display: flex; gap: 14px; align-items: flex-start;
+    background: linear-gradient(rgba(0,0,0,.75), transparent);
+  }
+  #yla .otsikko { font-size: 15px; font-weight: 600; line-height: 1.35; flex: 1; }
+  .ikoni { opacity: .95; font-size: 17px; line-height: 1.2; }
+
+  /* Liikeilmaisin videokuvan kulmassa */
+  #liike {
+    position: absolute; right: 12px;
+    top: calc(env(safe-area-inset-top, 0px) + 96px);
+    width: 210px; padding: 11px 12px 12px 17px;
+    background: rgba(0,0,0,.55); border-radius: 12px;
+  }
+  #liike::before {
+    content: ""; position: absolute; left: 6px; top: 9px; bottom: 9px;
+    width: 4px; border-radius: 2px; background: var(--liike-aksentti);
+  }
+  #liike .nro { font-size: 10px; font-weight: 600; letter-spacing: 1.4px; color: rgba(255,255,255,.72); }
+  #liike .nimi { font-size: 20px; font-weight: 800; margin: 3px 0 8px; white-space: nowrap; }
+  #liike .palkki { height: 4px; border-radius: 2px; background: rgba(255,255,255,.2); overflow: hidden; }
+  #liike .palkki i { display: block; height: 100%; background: var(--liike-aksentti);
+                     animation: kutistu 30s linear infinite; }
+  @keyframes kutistu { from { width: 100%; } to { width: 0; } }
+
+  /* Keskiohjaimet */
+  #ohjaimet {
+    position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%);
+    display: flex; gap: 40px; align-items: center;
+  }
+  #ohjaimet button {
+    width: 58px; height: 58px; border-radius: 50%; border: 0;
+    background: rgba(0,0,0,.45); color: #fff; font-size: 21px;
+  }
+  #ohjaimet button.iso { width: 74px; height: 74px; font-size: 28px; }
+
+  /* Alaoverlay: kanavarivi + edistymispalkki */
+  #ala {
+    position: absolute; left: 0; right: 0; bottom: 0;
+    padding: 44px 16px calc(env(safe-area-inset-bottom, 0px) + 16px);
+    background: linear-gradient(transparent, rgba(0,0,0,.8));
+    display: flex; flex-direction: column; gap: 10px;
+  }
+  .kanavarivi { display: flex; align-items: center; gap: 10px; }
+  .avatar {
+    width: 36px; height: 36px; border-radius: 50%; flex: none;
+    background: linear-gradient(135deg, var(--korostus), #b3241c);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px; font-weight: 700;
+  }
+  .kanava-nimi { font-size: 14px; font-weight: 600; }
+  .kanava-alarivi { font-size: 12px; color: rgba(255,255,255,.72); }
+  .tilaa {
+    margin-left: auto; padding: 8px 16px; border-radius: 20px;
+    background: var(--korostus); font-size: 13px; font-weight: 700;
+  }
+  .aikarivi { display: flex; justify-content: space-between; font-size: 12px; }
+  .aikarivi .kesto { color: rgba(255,255,255,.72); }
+  .edistyminen { height: 3px; border-radius: 2px; background: rgba(255,255,255,.3); position: relative; }
+  .edistyminen i { display: block; height: 100%; border-radius: 2px; background: var(--korostus); width: 0; }
+  .edistyminen b { position: absolute; top: -4.5px; width: 12px; height: 12px; border-radius: 50%;
+                   background: var(--korostus); left: 0; }
+
+  /* Operaattorin paneeli — EI KUVAAN */
+  #paneeli {
+    position: absolute; inset: 0; z-index: 10; overflow-y: auto;
+    background: rgba(10,10,14,.96); display: none;
+    padding: calc(env(safe-area-inset-top, 0px) + 18px) 18px
+             calc(env(safe-area-inset-bottom, 0px) + 18px);
+  }
+  #paneeli.auki { display: block; }
+  #paneeli h2 { font-size: 14px; letter-spacing: 1px; color: #f66; margin-bottom: 14px; }
+  #paneeli section { margin-bottom: 18px; }
+  #paneeli h3 { font-size: 12px; color: #999; letter-spacing: 1px; margin-bottom: 8px; }
+  #paneeli .rivi { display: flex; gap: 10px; flex-wrap: wrap; }
+  #paneeli button, #paneeli label.nappi {
+    border: 1px solid #444; background: #1c1d22; color: #fff; border-radius: 10px;
+    padding: 12px 16px; font-size: 14px; font-weight: 600; display: inline-block;
+  }
+  #paneeli button.aktiivinen { background: #2e5c3f; border-color: #4a9; }
+  #paneeli input[type=file] { display: none; }
+  #paneeli .vihje { font-size: 12px; color: #888; line-height: 1.6; }
+  #paneeli kbd { background: #2a2b30; border-radius: 4px; padding: 1px 6px;
+                 font-family: ui-monospace, Menlo, monospace; font-size: 11px; }
+  #sulje-paneeli { float: right; }
+</style>
+</head>
+<body>
+
+<video id="v1" playsinline preload="auto" loop muted></video>
+<video id="v2" playsinline preload="auto" loop muted></video>
+
+<div id="yla" class="siirtyma">
+  <span class="ikoni">&#8249;</span>
+  <span class="otsikko" id="otsikko"></span>
+  <span class="ikoni">&#128250;</span>
+  <span class="ikoni">&#8942;</span>
+</div>
+
+<div id="liike" class="siirtyma piilossa">
+  <div class="nro">LIIKE <span id="liike-nro">1</span>/<span id="liike-maara">6</span></div>
+  <div class="nimi" id="liike-nimi"></div>
+  <div class="palkki"><i id="liike-palkki"></i></div>
+</div>
+
+<div id="ohjaimet" class="siirtyma">
+  <button onclick="komento('j')">&#8634;</button>
+  <button class="iso" id="toistonappi" onclick="komento(' ')">&#9654;</button>
+  <button onclick="komento('l')">&#8635;</button>
+</div>
+
+<div id="ala" class="siirtyma">
+  <div class="kanavarivi">
+    <div class="avatar" id="avatar"></div>
+    <div>
+      <div class="kanava-nimi" id="kanava"></div>
+      <div class="kanava-alarivi" id="kanava-alarivi"></div>
+    </div>
+    <div class="tilaa">TILAA</div>
+  </div>
+  <div class="aikarivi num">
+    <span id="aika-nyt">0:00</span><span class="kesto" id="aika-kesto">0:00</span>
+  </div>
+  <div class="edistyminen"><i id="ed-tayte"></i><b id="ed-nuppi"></b></div>
+</div>
+
+<div id="paneeli">
+  <h2>OHJAUSPANEELI — EI KUVAAN <button id="sulje-paneeli" onclick="komento('h')">Sulje</button></h2>
+  <section>
+    <h3>NÄKYMÄ</h3>
+    <div class="rivi">
+      <button id="nappi-n1" onclick="komento('1')">1 · Video 1 (YouTube-otsikko)</button>
+      <button id="nappi-n2" onclick="komento('2')">2 · Video 2 (SKULLCRUSHER)</button>
+    </div>
+  </section>
+  <section>
+    <h3>TOISTO</h3>
+    <div class="rivi">
+      <button onclick="komento(' ')">Toisto/tauko</button>
+      <button onclick="komento('a')">Alusta</button>
+      <button onclick="komento('s')" id="nappi-aani">Ääni pois</button>
+      <button onclick="komento('z')">Sovita/täytä</button>
+    </div>
+  </section>
+  <section>
+    <h3>OVERLAYT</h3>
+    <div class="rivi">
+      <button onclick="komento('o')">Soittimen kehys</button>
+      <button onclick="komento('m')">Liikelaatikko</button>
+      <button onclick="komento('n')">Seuraava liike</button>
+      <button onclick="komento('b')">Edellinen liike</button>
+    </div>
+  </section>
+  <section>
+    <h3>VIDEOIDEN VAIHTO TÄLLE ISTUNNOLLE</h3>
+    <div class="rivi">
+      <label class="nappi">Valitse video 1…<input type="file" accept="video/*" onchange="vaihdaTiedosto(1, this)"></label>
+      <label class="nappi">Valitse video 2…<input type="file" accept="video/*" onchange="vaihdaTiedosto(2, this)"></label>
+    </div>
+    <p class="vihje" style="margin-top:8px">Pysyvä vaihto: korvaa <code>videot/video1.mp4</code> /
+    <code>video2.mp4</code> GitHub-repossa (ks. README).</p>
+  </section>
+  <section>
+    <h3>NÄPPÄIMET (BLUETOOTH-NÄPPÄIMISTÖ)</h3>
+    <p class="vihje">
+      <kbd>1</kbd>/<kbd>2</kbd> näkymä · <kbd>väli</kbd>/<kbd>K</kbd> toisto/tauko ·
+      <kbd>J</kbd>/<kbd>L</kbd> ±10 s · <kbd>A</kbd> alusta · <kbd>S</kbd> ääni ·
+      <kbd>O</kbd> kehys · <kbd>M</kbd> liikelaatikko · <kbd>N</kbd>/<kbd>B</kbd> liike ·
+      <kbd>Z</kbd> sovita/täytä · <kbd>H</kbd> tämä paneeli
+    </p>
+    <p class="vihje" id="wakelock-tila" style="margin-top:8px"></p>
+  </section>
+</div>
+
+<script>
+/* ===== Kuvauskohtaiset sisällöt — muokkaa näitä ===== */
+const ASETUKSET = {
+  video1: {
+    src: "videot/video1.mp4",
+    otsikko: "KILLER NON-STOP // HIIT TREENI (CARDIO + PAINOT)",
+    kehys: true,          // YouTube-kehys näkyvissä
+    liikelaatikko: false,
+  },
+  video2: {
+    src: "videot/video2.mp4",
+    otsikko: "KILLER NON-STOP // HIIT TREENI (CARDIO + PAINOT)",
+    kehys: false,         // pelkkä video + liikelaatikko
+    liikelaatikko: true,
+  },
+  liikkeet: ["SKULLCRUSHER", "BURPEET", "KYYKKYHYPYT", "VUORIKIIPEILIJÄ", "PUNNERRUKSET", "LANKKU"],
+  kanava: "TREENISTUDIO",
+  kanavaAlarivi: "128 t. tilaajaa",
+  nimikirjaimet: "TS",
+};
+
+/* ===== Alustus ===== */
+const v1 = document.getElementById("v1"), v2 = document.getElementById("v2");
+v1.src = ASETUKSET.video1.src;
+v2.src = ASETUKSET.video2.src;
+document.getElementById("otsikko").textContent = ASETUKSET.video1.otsikko;
+document.getElementById("kanava").textContent = ASETUKSET.kanava;
+document.getElementById("kanava-alarivi").textContent = ASETUKSET.kanavaAlarivi;
+document.getElementById("avatar").textContent = ASETUKSET.nimikirjaimet;
+document.getElementById("liike-maara").textContent = ASETUKSET.liikkeet.length;
+
+let aktiivinen = v1;
+let liikeIndeksi = 0;
+let piilotusAjastin = null;
+
+function el(id) { return document.getElementById(id); }
+function naytaKehys(paalla) {
+  for (const id of ["yla", "ala"]) el(id).classList.toggle("piilossa", !paalla);
+}
+function naytaLiike(paalla) { el("liike").classList.toggle("piilossa", !paalla); }
+
+function paivitaLiike() {
+  el("liike-nimi").textContent = ASETUKSET.liikkeet[liikeIndeksi];
+  el("liike-nro").textContent = liikeIndeksi + 1;
+  const p = el("liike-palkki");
+  p.style.animation = "none"; void p.offsetWidth; p.style.animation = "";
+}
+paivitaLiike();
+
+function vaihdaNakyma(nro) {
+  const asetus = nro === 1 ? ASETUKSET.video1 : ASETUKSET.video2;
+  const uusi = nro === 1 ? v1 : v2, vanha = nro === 1 ? v2 : v1;
+  vanha.pause(); vanha.classList.remove("nakyy");
+  uusi.classList.add("nakyy");
+  uusi.currentTime = 0;
+  uusi.play().catch(() => {});
+  aktiivinen = uusi;
+  el("otsikko").textContent = asetus.otsikko;
+  naytaKehys(asetus.kehys);
+  naytaLiike(asetus.liikelaatikko);
+  if (asetus.liikelaatikko) paivitaLiike();
+  el("nappi-n1").classList.toggle("aktiivinen", nro === 1);
+  el("nappi-n2").classList.toggle("aktiivinen", nro === 2);
+  paivitaToistonappi();
+  naytaOhjaimetHetkeksi();
+}
+
+/* Keskiohjaimet piiloutuvat itsestään 3 s kuluttua kuten oikeissa soittimissa */
+function naytaOhjaimetHetkeksi() {
+  el("ohjaimet").classList.remove("piilossa");
+  clearTimeout(piilotusAjastin);
+  piilotusAjastin = setTimeout(() => {
+    if (!aktiivinen.paused) el("ohjaimet").classList.add("piilossa");
+  }, 3000);
+}
+
+function paivitaToistonappi() {
+  el("toistonappi").innerHTML = aktiivinen.paused ? "&#9654;" : "&#10074;&#10074;";
+}
+
+function muotoileAika(s) {
+  if (!isFinite(s)) return "0:00";
+  s = Math.floor(s);
+  return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
+}
+
+setInterval(() => {
+  el("aika-nyt").textContent = muotoileAika(aktiivinen.currentTime);
+  el("aika-kesto").textContent = muotoileAika(aktiivinen.duration);
+  const osuus = aktiivinen.duration ? aktiivinen.currentTime / aktiivinen.duration : 0;
+  const pros = (osuus * 100).toFixed(2) + "%";
+  el("ed-tayte").style.width = pros;
+  el("ed-nuppi").style.left = `calc(${pros} - 6px)`;
+}, 250);
+
+/* Videon vaihto lennossa tiedostonvalitsimella (vain tälle istunnolle) */
+function vaihdaTiedosto(nro, input) {
+  const tiedosto = input.files && input.files[0];
+  if (!tiedosto) return;
+  const kohde = nro === 1 ? v1 : v2;
+  kohde.src = URL.createObjectURL(tiedosto);
+  if (kohde === aktiivinen) kohde.play().catch(() => {});
+}
+
+/* Näytön sammumisen esto (toimii HTTPS:n yli, esim. GitHub Pages) */
+let wakeLock = null;
+async function pyydaWakeLock() {
+  try {
+    if ("wakeLock" in navigator && !wakeLock) {
+      wakeLock = await navigator.wakeLock.request("screen");
+      wakeLock.addEventListener("release", () => { wakeLock = null; });
+      el("wakelock-tila").textContent = "Näytön sammumisen esto: päällä.";
+    }
+  } catch (e) {
+    el("wakelock-tila").textContent =
+      "Näytön sammumisen esto ei käytettävissä — laita Automaattilukitus pois päältä (Asetukset → Näyttö ja kirkkaus).";
+  }
+}
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState === "visible") pyydaWakeLock();
+});
+
+/* ===== Komennot: samat näppäimistöltä, napeista ja kosketuksesta ===== */
+function komento(merkki) {
+  switch (merkki) {
+    case "1": vaihdaNakyma(1); break;
+    case "2": vaihdaNakyma(2); break;
+    case " ": case "k":
+      aktiivinen.paused ? aktiivinen.play().catch(() => {}) : aktiivinen.pause();
+      paivitaToistonappi(); naytaOhjaimetHetkeksi(); break;
+    case "j": aktiivinen.currentTime = Math.max(0, aktiivinen.currentTime - 10); break;
+    case "l": aktiivinen.currentTime = Math.min(aktiivinen.duration || 0, aktiivinen.currentTime + 10); break;
+    case "a": aktiivinen.currentTime = 0; aktiivinen.play().catch(() => {}); paivitaToistonappi(); break;
+    case "s":
+      v1.muted = v2.muted = !v1.muted;
+      el("nappi-aani").textContent = v1.muted ? "Ääni päälle" : "Ääni pois"; break;
+    case "z": document.body.classList.toggle("tayta"); break;
+    case "o": {
+      const piilossa = el("yla").classList.contains("piilossa");
+      naytaKehys(piilossa); break;
+    }
+    case "m": el("liike").classList.toggle("piilossa"); break;
+    case "n": liikeIndeksi = (liikeIndeksi + 1) % ASETUKSET.liikkeet.length; paivitaLiike(); break;
+    case "b": liikeIndeksi = (liikeIndeksi + ASETUKSET.liikkeet.length - 1) % ASETUKSET.liikkeet.length; paivitaLiike(); break;
+    case "h": el("paneeli").classList.toggle("auki"); break;
+  }
+  pyydaWakeLock();
+}
+
+document.addEventListener("keydown", (e) => {
+  if (e.metaKey || e.ctrlKey || e.altKey) return;
+  komento(e.key.toLowerCase());
+  if (e.key === " ") e.preventDefault();
+});
+
+/* Kosketus: napautus näyttää ohjaimet; kolme nopeaa napautusta
+   vasempaan yläkulmaan avaa ohjauspaneelin ilman näppäimistöä. */
+let kulmaNapautukset = [];
+document.addEventListener("click", (e) => {
+  if (e.target.closest("#paneeli") || e.target.closest("button") || e.target.closest("label")) return;
+  if (e.clientX < 90 && e.clientY < 90) {
+    const nyt = Date.now();
+    kulmaNapautukset = kulmaNapautukset.filter(t => nyt - t < 1200);
+    kulmaNapautukset.push(nyt);
+    if (kulmaNapautukset.length >= 3) { kulmaNapautukset = []; komento("h"); return; }
+  }
+  naytaOhjaimetHetkeksi();
+  pyydaWakeLock();
+});
+
+/* Käynnistys: video 1, mykistetty automaattitoisto */
+vaihdaNakyma(1);
+</script>
+</body>
+</html>
