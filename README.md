@@ -7,7 +7,7 @@ selaimessa ilman asennuksia. Kaksi näkymää käsikirjoituksen mukaan:
    *KILLER NON-STOP // HIIT TREENI (CARDIO + PAINOT)*
 2. **Video 2** — pelkkä video ja liikeilmaisin *SKULLCRUSHER* kulmassa
 
-Julkaistu GitHub Pagesissa: **https://antsub.github.io/jakso2-web/**
+Julkaistu GitHub Pagesissa: **https://mental-films.github.io/jakso2-web/**
 
 ## Käyttöönotto kuvattavassa iPhonessa
 
@@ -60,8 +60,7 @@ Vaihto koskee vain sitä istuntoa.
 
 Kaikki sisällöt (otsikko, liikelista, kanavan nimi) ja värit ovat
 `index.html`-tiedoston alussa: CSS-muuttujat `:root`-lohkossa ja
-`ASETUKSET`-objekti skriptin alussa. Graafikon ohje projektin
-pääkansiossa: `../OHJE-GRAAFIKOLLE.md`.
+`ASETUKSET`-objekti skriptin alussa.
 
 ## Huomiot
 
