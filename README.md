@@ -9,6 +9,9 @@ selaimessa ilman asennuksia. Kaksi näkymää käsikirjoituksen mukaan:
 
 Julkaistu GitHub Pagesissa: **https://mental-films.github.io/jakso2-web/**
 
+Kellosovelluksen esikatselu selaimessa (graafikolle, ei vaadi asennuksia):
+**https://mental-films.github.io/jakso2-web/kello.html**
+
 ## Käyttöönotto kuvattavassa iPhonessa
 
 1. Avaa osoite Safarissa.

@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="fi">
+<head>
+<meta charset="utf-8">
+<title>Jakso 2 — Kello</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  :root {
+    --keltainen: #FADA1A;   /* treenikello */
+    --punainen: #FF453B;    /* sydän */
+    --vihrea: #38FA8C;      /* kellonaika */
+    --halytys: #CC1A14;     /* hälytyksen tausta */
+  }
+  * { box-sizing: border-box; margin: 0; -webkit-tap-highlight-color: transparent; }
+  body {
+    background: #17181c; color: #eee; min-height: 100vh;
+    font-family: -apple-system, "Helvetica Neue", Arial, sans-serif;
+    display: flex; flex-direction: column; align-items: center; gap: 22px;
+    padding: 28px 16px 48px;
+  }
+  h1 { font-size: 16px; font-weight: 600; color: #aaa; text-align: center; }
+  .num { font-variant-numeric: tabular-nums; font-family: "SF Mono", ui-monospace, Menlo, monospace; }
+
+  /* Apple Watch Ultra -kehys (piirtoala 205 × 251 pt, tässä ~1.6×) */
+  .kello-runko {
+    width: 340px; height: 410px; background: #000; border-radius: 80px;
+    border: 10px solid #3a3a3e; position: relative; overflow: hidden;
+    box-shadow: 0 12px 40px rgba(0,0,0,.6);
+    touch-action: pan-y; cursor: grab; user-select: none;
+  }
+  .ruutu { position: absolute; inset: 0; padding: 32px 26px; display: none; }
+  .ruutu.nakyy { display: flex; }
+
+  /* Sykenäkymä — referenssi: Applen Treeni-sovellus */
+  #syke { flex-direction: column; justify-content: center; gap: 4px; }
+  .treenin-nimi { font-size: 14px; font-weight: 600; color: rgba(255,255,255,.65); letter-spacing: .5px; }
+  .treenikello { font-size: 36px; font-weight: 600; color: var(--keltainen); }
+  .bpm-rivi { display: flex; align-items: baseline; gap: 8px; }
+  .bpm-luku { font-size: 62px; font-weight: 500; }
+  .bpm-yksikko { font-size: 19px; font-weight: 600; color: rgba(255,255,255,.65); }
+  .sydan { font-size: 24px; color: var(--punainen); animation: syki .9s ease-in-out infinite; display: inline-block; }
+  @keyframes syki { 0%,100% { transform: scale(.85); } 50% { transform: scale(1.15); } }
+  .kcal-rivi { display: flex; align-items: baseline; gap: 7px; }
+  .kcal-luku { font-size: 30px; font-weight: 500; }
+  .kcal-yksikko { font-size: 14px; font-weight: 600; color: rgba(255,255,255,.65); }
+  .vyohykkeet { display: flex; gap: 4px; height: 13px; margin-top: 8px; position: relative; }
+  .vyohykkeet span { flex: 1; border-radius: 7px; opacity: .4; }
+  .osoitin { position: absolute; top: 1px; width: 5px; height: 11px; border-radius: 3px;
+             background: #fff; transition: left .5s ease; }
+
+  /* Hälytys — referenssi: Applen korkean sykkeen ilmoitus */
+  #halytys { flex-direction: column; justify-content: center; align-items: center; gap: 8px;
+             text-align: center; animation: halytys-syke 1.2s ease-in-out infinite; }
+  @keyframes halytys-syke { 0%,100% { background: var(--halytys); } 50% { background: #a11310; } }
+  #halytys .kolmio { font-size: 36px; }
+  #halytys h2 { font-size: 24px; font-weight: 800; letter-spacing: .5px; }
+  #halytys p { font-size: 17px; font-weight: 600; opacity: .92; }
+  #halytys button {
+    margin-top: 10px; width: 80%; padding: 12px; border: 0; border-radius: 14px;
+    background: rgba(0,0,0,.35); color: #fff; font-size: 17px; font-weight: 700; cursor: pointer;
+  }
+
+  /* Aikanäkymä */
+  #kello-aika { flex-direction: column; justify-content: center; align-items: center; gap: 4px; }
+  #kello-aika .paivays { font-size: 17px; font-weight: 600; color: rgba(255,255,255,.65); }
+  #kello-aika .aika { font-size: 86px; font-weight: 600; color: var(--vihrea); }
+  #kello-aika .kaksoispiste { animation: vilkku 2s steps(1) infinite; }
+  @keyframes vilkku { 0% { opacity: 1; } 50% { opacity: .2; } 100% { opacity: 1; } }
+
+  /* Näkymänapit */
+  .napit { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; max-width: 420px; }
+  .napit button {
+    border: 1px solid #444; background: #1c1d22; color: #fff; border-radius: 10px;
+    padding: 10px 14px; font-size: 13px; font-weight: 600; cursor: pointer;
+  }
+  .napit button.aktiivinen { background: #2e5c3f; border-color: #4a9; }
+
+  .ohje { max-width: 460px; font-size: 13px; line-height: 1.7; color: #999; text-align: center; }
+</style>
+</head>
+<body>
+
+<h1>Jakso 2 — kellosovelluksen näyttögrafiikka (template)</h1>
+
+<div class="kello-runko" id="runko">
+  <div class="ruutu nakyy" id="syke">
+    <div class="treenin-nimi">HIIT-TREENI</div>
+    <div class="treenikello num" id="treenikello">23:47,00</div>
+    <div class="bpm-rivi">
+      <span class="bpm-luku num" id="bpm">168</span>
+      <span class="bpm-yksikko">BPM</span>
+      <span class="sydan">&#10084;&#65039;</span>
+    </div>
+    <div class="kcal-rivi">
+      <span class="kcal-luku num" id="kcal">412</span>
+      <span class="kcal-yksikko">KCAL</span>
+    </div>
+    <div class="vyohykkeet">
+      <span style="background:#8e8e93"></span><span style="background:#0a84ff"></span>
+      <span style="background:#30d158"></span><span style="background:#ff9f0a"></span>
+      <span style="background:#ff453a"></span>
+      <i class="osoitin" id="osoitin"></i>
+    </div>
+  </div>
+
+  <div class="ruutu" id="halytys">
+    <div class="kolmio">&#9888;&#65039;</div>
+    <h2>KORKEA SYKE</h2>
+    <p>RAUHOITA TAHTIA</p>
+    <button onclick="event.stopPropagation(); siirry(3)">Sulje</button>
+  </div>
+
+  <div class="ruutu" id="kello-aika">
+    <div class="paivays">TI 13.8.</div>
+    <div class="aika num">3<span class="kaksoispiste">:</span>31</div>
+  </div>
+
+  <div class="ruutu" id="pimea" style="background:#000"></div>
+</div>
+
+<div class="napit" id="napit">
+  <button onclick="siirry(0)">Syke 170</button>
+  <button onclick="siirry(1)">Ramppi 170&#8594;185</button>
+  <button onclick="siirry(2)">Hälytys</button>
+  <button onclick="siirry(3)">Kello 3:31</button>
+  <button onclick="siirry(4)">Pimeä</button>
+</div>
+
+<p class="ohje">
+  Sama kuin oikeassa sovelluksessa: <strong>pyyhkäise kellon näyttöä</strong>
+  vasemmalle/oikealle vaihtaaksesi näkymää, tai käytä nappeja.
+  Kaikki elementit ovat eläviä — kello juoksee, syke värähtelee, sydän sykkii.
+  Värit ja fontit ovat väliaikaisia ja vaihdettavissa keskitetysti.
+</p>
+
+<script>
+/* Sama logiikka kuin kellosovelluksen SykeMoottorissa */
+let bpm = 168, tavoite = 170, nousuPortaat = [];
+let kcal = 412;
+let isku = 0;   // 0 syke170, 1 ramppi, 2 hälytys, 3 kello, 4 pimeä
+const treeninAlku = Date.now() - (23 * 60 + 47) * 1000;
+
+function siirry(uusi) {
+  isku = (uusi + 5) % 5;
+  for (const r of document.querySelectorAll('.ruutu')) r.classList.remove('nakyy');
+  const napit = document.querySelectorAll('#napit button');
+  napit.forEach((n, i) => n.classList.toggle('aktiivinen', i === isku));
+  switch (isku) {
+    case 0: tavoite = 170; nousuPortaat = []; nayta('syke'); break;
+    case 1: tavoite = 170; bpm = Math.min(bpm, 168); nousuPortaat = [180, 185]; nayta('syke'); break;
+    case 2: tavoite = 185; nousuPortaat = []; nayta('halytys'); break;
+    case 3: nayta('kello-aika'); break;
+    case 4: nayta('pimea'); break;
+  }
+}
+function nayta(id) {
+  document.getElementById(id).classList.add('nakyy');
+  if (id === 'halytys') document.getElementById('syke').classList.add('nakyy');
+}
+
+setInterval(() => {
+  const ero = tavoite - bpm;
+  if (ero !== 0) {
+    bpm += Math.sign(ero) * Math.min(Math.abs(ero), 1 + Math.floor(Math.random() * 3));
+  } else {
+    bpm = tavoite + (Math.floor(Math.random() * 3) - 1);
+    if (nousuPortaat.length) tavoite = nousuPortaat.shift();
+  }
+  document.getElementById('bpm').textContent = bpm;
+  const osuus = Math.min(Math.max((bpm - 100) / 95, 0), 1);
+  document.getElementById('osoitin').style.left = `calc(${(osuus * 100).toFixed(1)}% - 3px)`;
+}, 700);
+
+setInterval(() => { document.getElementById('kcal').textContent = ++kcal; }, 4500);
+
+(function tick() {
+  const t = (Date.now() - treeninAlku) / 1000;
+  const m = Math.floor(t / 60), s = Math.floor(t % 60), c = Math.floor((t % 1) * 100);
+  document.getElementById('treenikello').textContent =
+    `${m}:${String(s).padStart(2,'0')},${String(c).padStart(2,'0')}`;
+  requestAnimationFrame(tick);
+})();
+
+/* Pyyhkäisy kellon näytöllä — kuten oikeassa sovelluksessa */
+const runko = document.getElementById('runko');
+let alkuX = null;
+runko.addEventListener('pointerdown', e => { alkuX = e.clientX; });
+runko.addEventListener('pointerup', e => {
+  if (alkuX === null) return;
+  const dx = e.clientX - alkuX;
+  alkuX = null;
+  if (dx < -30) siirry(isku + 1);
+  else if (dx > 30) siirry(isku - 1);
+});
+
+siirry(0);
+</script>
+</body>
+</html>
