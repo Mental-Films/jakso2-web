@@ -28,6 +28,16 @@
   video.nakyy { display: block; }
   body.tayta video { object-fit: cover; }
 
+  /* Graafikon toimittama valmis peittokuva (PNG, läpinäkyvä tausta).
+     Jos tiedosto löytyy, se korvaa alla olevat koodilla piirretyt
+     elementit kokonaan — mitään väliaikaista grafiikkaa ei jää näkyviin. */
+  .overlay {
+    position: absolute; inset: 0; width: 100%; height: 100%;
+    object-fit: contain; pointer-events: none; display: none;
+  }
+  .overlay.nakyy { display: block; }
+  body.tayta .overlay { object-fit: cover; }
+
   .piilossa { opacity: 0 !important; pointer-events: none !important; }
   .siirtyma { transition: opacity .25s; }
 
@@ -126,6 +136,9 @@
 <video id="v1" playsinline preload="auto" loop muted></video>
 <video id="v2" playsinline preload="auto" loop muted></video>
 
+<img id="ov1" class="overlay" alt="">
+<img id="ov2" class="overlay" alt="">
+
 <div id="yla" class="siirtyma">
   <span class="ikoni">&#8249;</span>
   <span class="otsikko" id="otsikko"></span>
@@ -216,12 +229,16 @@ const ASETUKSET = {
     otsikko: "KILLER NON-STOP // HIIT TREENI (CARDIO + PAINOT)",
     kehys: true,          // YouTube-kehys näkyvissä
     liikelaatikko: false,
+    // Graafikon peittokuva. Kun tiedosto on olemassa, se korvaa
+    // kehyksen ja liikelaatikon kokonaan. Puuttuva tiedosto ohitetaan.
+    overlay: "grafiikat/overlay1.png",
   },
   video2: {
     src: "videot/video2.mp4",
     otsikko: "KILLER NON-STOP // HIIT TREENI (CARDIO + PAINOT)",
     kehys: false,         // pelkkä video + liikelaatikko
     liikelaatikko: true,
+    overlay: "grafiikat/overlay2.png",
   },
   liikkeet: ["SKULLCRUSHER", "BURPEET", "KYYKKYHYPYT", "VUORIKIIPEILIJÄ", "PUNNERRUKSET", "LANKKU"],
   kanava: "TREENISTUDIO",
@@ -240,6 +257,7 @@ document.getElementById("avatar").textContent = ASETUKSET.nimikirjaimet;
 document.getElementById("liike-maara").textContent = ASETUKSET.liikkeet.length;
 
 let aktiivinen = v1;
+let aktiivinenNro = 1;
 let liikeIndeksi = 0;
 let piilotusAjastin = null;
 
@@ -257,6 +275,28 @@ function paivitaLiike() {
 }
 paivitaLiike();
 
+/* Peittokuva voittaa aina koodilla piirretyn kehyksen. Jos graafikon
+   tiedostoa ei ole, käytetään väliaikaista kehystä. */
+function paivitaKerrokset() {
+  const asetus = aktiivinenNro === 1 ? ASETUKSET.video1 : ASETUKSET.video2;
+  const oma = el("ov" + aktiivinenNro);
+  const muu = el("ov" + (aktiivinenNro === 1 ? 2 : 1));
+  muu.classList.remove("nakyy");
+  const overlayKaytossa = oma.dataset.ok === "1";
+  oma.classList.toggle("nakyy", overlayKaytossa);
+  naytaKehys(!overlayKaytossa && asetus.kehys);
+  naytaLiike(!overlayKaytossa && asetus.liikelaatikko);
+  if (!overlayKaytossa && asetus.liikelaatikko) paivitaLiike();
+}
+
+function lataaOverlay(nro, polku) {
+  if (!polku) return;
+  const img = el("ov" + nro);
+  img.onload = () => { img.dataset.ok = "1"; paivitaKerrokset(); };
+  img.onerror = () => { img.dataset.ok = ""; };
+  img.src = polku;
+}
+
 function vaihdaNakyma(nro) {
   const asetus = nro === 1 ? ASETUKSET.video1 : ASETUKSET.video2;
   const uusi = nro === 1 ? v1 : v2, vanha = nro === 1 ? v2 : v1;
@@ -265,10 +305,9 @@ function vaihdaNakyma(nro) {
   uusi.currentTime = 0;
   uusi.play().catch(() => {});
   aktiivinen = uusi;
+  aktiivinenNro = nro;
   el("otsikko").textContent = asetus.otsikko;
-  naytaKehys(asetus.kehys);
-  naytaLiike(asetus.liikelaatikko);
-  if (asetus.liikelaatikko) paivitaLiike();
+  paivitaKerrokset();
   el("nappi-n1").classList.toggle("aktiivinen", nro === 1);
   el("nappi-n2").classList.toggle("aktiivinen", nro === 2);
   paivitaToistonappi();
@@ -346,6 +385,8 @@ function komento(merkki) {
       el("nappi-aani").textContent = v1.muted ? "Ääni päälle" : "Ääni pois"; break;
     case "z": document.body.classList.toggle("tayta"); break;
     case "o": {
+      const oma = el("ov" + aktiivinenNro);
+      if (oma.dataset.ok === "1") { oma.classList.toggle("nakyy"); break; }
       const piilossa = el("yla").classList.contains("piilossa");
       naytaKehys(piilossa); break;
     }
@@ -379,6 +420,8 @@ document.addEventListener("click", (e) => {
 });
 
 /* Käynnistys: video 1, mykistetty automaattitoisto */
+lataaOverlay(1, ASETUKSET.video1.overlay);
+lataaOverlay(2, ASETUKSET.video2.overlay);
 vaihdaNakyma(1);
 </script>
 </body>

@@ -59,6 +59,23 @@ tiedosto — pakattuna 26 s video on n. 31 Mt.
 kulmaan) → *Valitse video 1/2…* → poimi video Kuvista tai Tiedostoista.
 Vaihto koskee vain sitä istuntoa.
 
+## Graafikon peittokuvat
+
+Soittimen päällysgrafiikat (otsikkopalkki, kanavarivi, aikapalkki,
+liikelaatikko) piirtyvät oletuksena koodista väliaikaisina. Kun
+graafikko toimittaa valmiit peittokuvat, ne korvaavat koodigrafiikan
+kokonaan — mitään väliaikaista ei jää näkyviin:
+
+| Tiedosto | Näkymä |
+|---|---|
+| `grafiikat/overlay1.png` | Näkymä 1: YouTube-kehys ja otsikko |
+| `grafiikat/overlay2.png` | Näkymä 2: SKULLCRUSHER-liikeilmaisin |
+
+PNG, läpinäkyvä tausta, videon kokoinen (esim. 1080 × 1920).
+Puuttuva tiedosto ohitetaan automaattisesti. Vaihtoehtoisesti
+grafiikat voi polttaa suoraan videoon, jolloin peittokuvia ei
+tarvita lainkaan.
+
 ## Tekstien ja värien muokkaus
 
 Kaikki sisällöt (otsikko, liikelista, kanavan nimi) ja värit ovat
